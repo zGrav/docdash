@@ -711,7 +711,7 @@ exports.publish = function(taffyData, opts, tutorials) {
 
     generate('', 'Home',
         packages.concat(
-            [{kind: 'mainpage', readme: opts.readme, longname: (opts.mainpagetitle) ? opts.mainpagetitle : 'Main Page'}]
+            [{kind: 'mainpage', readme: opts.opts.readme, longname: (opts.mainpagetitle) ? opts.mainpagetitle : 'Main Page'}]
         ).concat(files),
     indexUrl);
 
@@ -782,3 +782,4 @@ exports.publish = function(taffyData, opts, tutorials) {
 
     saveChildren(tutorials);
 };
+  
