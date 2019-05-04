@@ -19,7 +19,7 @@ var hasOwnProp = Object.prototype.hasOwnProperty;
 var data;
 var view;
 
-var outdir = path.normalize(env.opts.destination);
+var env = null;
 
 function copyFile(source, target, cb) {
   var cbCalled = false;
@@ -242,8 +242,11 @@ function generate(type, title, docs, filename, resolveLinks) {
     var docData = {
         type: type,
         title: title,
-        docs: docs
+        docs: docs,
+        env: env
     };
+
+    var outdir = path.normalize(env.opts.destination);
 
     var outpath = path.join(outdir, filename),
         html = view.render('container.tmpl', docData);
@@ -481,13 +484,14 @@ function buildNav(members) {
     @param {Tutorial} tutorials
  */
 exports.publish = function(taffyData, opts, tutorials) {
+    env = opts;
     var docdash = env && env.conf && env.conf.docdash || {};
     data = taffyData;
 
     var conf = env.conf.templates || {};
     conf.default = conf.default || {};
 
-    var templatePath = path.normalize(opts.template);
+    var templatePath = path.normalize(env.conf.opts.template);
     view = new template.Template( path.join(templatePath, 'tmpl') );
 
     // claim some special filenames in advance, so the All-Powerful Overseer of Filename Uniqueness
@@ -574,11 +578,16 @@ exports.publish = function(taffyData, opts, tutorials) {
         }
     });
 
+    var outdir = '';
+
     // update outdir if necessary, then create outdir
     var packageInfo = ( find({kind: 'package'}) || [] ) [0];
     if (packageInfo && packageInfo.name) {
-        outdir = path.join( outdir, packageInfo.name, (packageInfo.version || '') );
+      outdir = path.join( outdir, packageInfo.name, (packageInfo.version || '') );
+    } else {
+      outdir = path.normalize(env.opts.destination);
     }
+
     fs.mkPath(outdir);
 
     // copy the template's static files to outdir
