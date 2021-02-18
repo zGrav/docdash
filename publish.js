@@ -1,13 +1,13 @@
 /*global env: true */
 'use strict';
 
-var doop = require('jsdoc/util/doop');
-var fs = require('jsdoc/fs');
-var helper = require('jsdoc/util/templateHelper');
-var logger = require('jsdoc/util/logger');
-var path = require('jsdoc/path');
+var doop = require('jsdoc/lib/jsdoc/util/doop');
+var fs = require('jsdoc/lib/jsdoc/fs');
+var helper = require('jsdoc/lib/jsdoc/util/templateHelper');
+var logger = require('jsdoc/lib/jsdoc/util/logger');
+var path = require('jsdoc/lib/jsdoc/path');
 var taffy = require('taffydb').taffy;
-var template = require('jsdoc/template');
+var template = require('jsdoc/lib/jsdoc/template');
 var util = require('util');
 
 var htmlsafe = helper.htmlsafe;
@@ -19,7 +19,7 @@ var hasOwnProp = Object.prototype.hasOwnProperty;
 var data;
 var view;
 
-var outdir = path.normalize(env.opts.destination);
+var env = null;
 
 function copyFile(source, target, cb) {
   var cbCalled = false;
@@ -83,11 +83,11 @@ function needsSignature(doclet) {
             }
         }
     }
-    // and namespaces that are functions get a signature (but finding them is a		
-    // bit messy)		
-    else if (doclet.kind === 'namespace' && doclet.meta && doclet.meta.code &&		
-        doclet.meta.code.type && doclet.meta.code.type.match(/[Ff]unction/)) {		
-        needsSig = true;		
+    // and namespaces that are functions get a signature (but finding them is a
+    // bit messy)
+    else if (doclet.kind === 'namespace' && doclet.meta && doclet.meta.code &&
+        doclet.meta.code.type && doclet.meta.code.type.match(/[Ff]unction/)) {
+        needsSig = true;
     }
 
     return needsSig;
@@ -242,8 +242,11 @@ function generate(type, title, docs, filename, resolveLinks) {
     var docData = {
         type: type,
         title: title,
-        docs: docs
+        docs: docs,
+        env: env
     };
+
+    var outdir = path.normalize(env.opts.destination);
 
     var outpath = path.join(outdir, filename),
         html = view.render('container.tmpl', docData);
@@ -481,13 +484,14 @@ function buildNav(members) {
     @param {Tutorial} tutorials
  */
 exports.publish = function(taffyData, opts, tutorials) {
+    env = opts;
     var docdash = env && env.conf && env.conf.docdash || {};
     data = taffyData;
 
     var conf = env.conf.templates || {};
     conf.default = conf.default || {};
 
-    var templatePath = path.normalize(opts.template);
+    var templatePath = path.normalize(env.conf.opts.template);
     view = new template.Template( path.join(templatePath, 'tmpl') );
 
     // claim some special filenames in advance, so the All-Powerful Overseer of Filename Uniqueness
@@ -574,11 +578,16 @@ exports.publish = function(taffyData, opts, tutorials) {
         }
     });
 
+    var outdir = '';
+
     // update outdir if necessary, then create outdir
     var packageInfo = ( find({kind: 'package'}) || [] ) [0];
     if (packageInfo && packageInfo.name) {
-        outdir = path.join( outdir, packageInfo.name, (packageInfo.version || '') );
+      outdir = path.join( outdir, packageInfo.name, (packageInfo.version || '') );
+    } else {
+      outdir = path.normalize(env.opts.destination);
     }
+
     fs.mkPath(outdir);
 
     // copy the template's static files to outdir
@@ -702,7 +711,7 @@ exports.publish = function(taffyData, opts, tutorials) {
 
     generate('', 'Home',
         packages.concat(
-            [{kind: 'mainpage', readme: opts.readme, longname: (opts.mainpagetitle) ? opts.mainpagetitle : 'Main Page'}]
+            [{kind: 'mainpage', readme: opts.opts.readme, longname: (opts.mainpagetitle) ? opts.mainpagetitle : 'Main Page'}]
         ).concat(files),
     indexUrl);
 
@@ -773,3 +782,4 @@ exports.publish = function(taffyData, opts, tutorials) {
 
     saveChildren(tutorials);
 };
+  
